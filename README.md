@@ -7,18 +7,10 @@ This repo is part of the **IBM SkillsBuild AI Builders Challenge** and is your s
 ---
 
 ## 🚀 Getting Started
-- Start with the **TORCS Lab** → this is the **May Challenge lab**  
+- Check out the **TORCS Lab** → this is the **May Challenge lab**
+- Check out the **Football Lab** → this is the **June Challenge lab** 
 - Work through the folders and try things out as you go  
 - Use `RESULTS.md` in your fork to track what you learn  
-- This is the **May lab** — keep an eye out for the **June lab** coming next 👀  
-
----
-
-## 🏁 Current Lab
-
-**TORCS (May Challenge Lab)**  
-You’ll explore AI + simulation by running and improving an autonomous driving agent.  
-No pressure to be perfect — this is all about learning and experimenting.
 
 ---
 
@@ -26,7 +18,7 @@ No pressure to be perfect — this is all about learning and experimenting.
 
 Stuck or have a question?  
 
-👉 Ask in Discord under **#may-challenge-and-labs**
+👉 Ask in Discord under **#june-challenge-and-labs**
 
 ---
 
