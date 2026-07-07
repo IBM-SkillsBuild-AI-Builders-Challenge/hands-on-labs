@@ -23,6 +23,12 @@ type Action =
   | { type: 'PAUSE' }
   | { type: 'SEEK'; norm: number }
   | { type: 'END' }
+  | { type: 'SET_TEMPO'; value: number }
+  | { type: 'SET_CUE'; norm: number }
+  | { type: 'JUMP_TO_CUE' }
+  | { type: 'TOGGLE_LOOP' }
+  | { type: 'SET_LOOP_START'; norm: number }
+  | { type: 'SET_LOOP_END'; norm: number }
   | { type: 'SET_VOLUME'; value: number }
   | { type: 'SET_EQ'; band: EqBand; value: number }
   | { type: 'SET_FILTER'; value: number };
@@ -43,6 +49,20 @@ function reducer(s: DeckState, a: Action): DeckState {
     case 'END':
       // Reached the end: stop and rewind to the start.
       return { ...s, playing: false, baseNorm: 0, seekGen: s.seekGen + 1 };
+    case 'SET_TEMPO':
+      return { ...s, tempo: Math.max(0.5, Math.min(2, a.value)) };
+    case 'SET_CUE':
+      return { ...s, cuePosition: clamp01(a.norm), cueSet: true };
+    case 'JUMP_TO_CUE':
+      return s.cueSet && s.cuePosition !== null
+        ? { ...s, baseNorm: clamp01(s.cuePosition), seekGen: s.seekGen + 1 }
+        : s;
+    case 'TOGGLE_LOOP':
+      return { ...s, loopEnabled: !s.loopEnabled };
+    case 'SET_LOOP_START':
+      return { ...s, loopStart: clamp01(a.norm) };
+    case 'SET_LOOP_END':
+      return { ...s, loopEnd: clamp01(a.norm) };
     case 'SET_VOLUME':
       return { ...s, volume: clamp01(a.value) };
     case 'SET_EQ':
@@ -61,6 +81,12 @@ export interface UseDeck {
   load: (file: File) => Promise<void>;
   togglePlay: () => void;
   seek: (norm: number) => void;
+  setTempo: (value: number) => void;
+  setCue: (norm: number) => void;
+  jumpToCue: () => void;
+  toggleLoop: () => void;
+  setLoopStart: (norm: number) => void;
+  setLoopEnd: (norm: number) => void;
   setVolume: (value: number) => void;
   setEq: (band: EqBand, value: number) => void;
   setFilter: (value: number) => void;
@@ -124,9 +150,15 @@ export function useDeck(id: string, audioReady: boolean): UseDeck {
     dispatch({ type: 'SEEK', norm });
   }, []);
 
+  const setTempo = useCallback((value: number) => dispatch({ type: 'SET_TEMPO', value }), []);
+  const setCue = useCallback((norm: number) => dispatch({ type: 'SET_CUE', norm }), []);
+  const jumpToCue = useCallback(() => dispatch({ type: 'JUMP_TO_CUE' }), []);
+  const toggleLoop = useCallback(() => dispatch({ type: 'TOGGLE_LOOP' }), []);
+  const setLoopStart = useCallback((norm: number) => dispatch({ type: 'SET_LOOP_START', norm }), []);
+  const setLoopEnd = useCallback((norm: number) => dispatch({ type: 'SET_LOOP_END', norm }), []);
   const setVolume = useCallback((value: number) => dispatch({ type: 'SET_VOLUME', value }), []);
   const setEq = useCallback((band: EqBand, value: number) => dispatch({ type: 'SET_EQ', band, value }), []);
   const setFilter = useCallback((value: number) => dispatch({ type: 'SET_FILTER', value }), []);
 
-  return { state, position, level, load, togglePlay, seek, setVolume, setEq, setFilter };
+  return { state, position, level, load, togglePlay, seek, setTempo, setCue, jumpToCue, toggleLoop, setLoopStart, setLoopEnd, setVolume, setEq, setFilter };
 }

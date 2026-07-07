@@ -31,6 +31,11 @@ export interface DeckState {
   baseNorm: number; // normalized position of the last seek (0..1)
   seekGen: number; // bump to force the transport accumulator to reset
   tempo: number; // playback rate ratio; 1.0 in P1 (varispeed arrives in P4)
+  cuePosition: number | null; // normalized cue point; null when unset
+  cueSet: boolean;
+  loopEnabled: boolean;
+  loopStart: number;
+  loopEnd: number;
   volume: number; // 0..1
   eqLow: number; // dB, -12..12
   eqMid: number; // dB, -12..12
@@ -46,6 +51,11 @@ export function initialDeckState(id: string): DeckState {
     baseNorm: 0,
     seekGen: 0,
     tempo: 1,
+    cuePosition: null,
+    cueSet: false,
+    loopEnabled: false,
+    loopStart: 0.1,
+    loopEnd: 0.3,
     volume: 1,
     eqLow: 0,
     eqMid: 0,
@@ -125,7 +135,19 @@ export function buildDeckSignal(s: DeckState): DeckSignal | null {
   const seekTrig = el.const({ key: `${s.id}_seek`, value: s.seekGen });
   const base = el.const({ key: `${s.id}_base`, value: s.baseNorm });
 
-  const position = el.add(base, el.accum(inc, seekTrig));
+  const phase = el.add(base, el.accum(inc, seekTrig));
+  const loopLen = Math.max(0.001, s.loopEnd - s.loopStart);
+  const loopStart = s.loopEnabled ? s.loopStart : null;
+  const loopWrap = loopStart === null
+    ? phase
+    : el.add(
+        el.const({ key: `${s.id}_loopStart`, value: s.loopStart }),
+        el.mul(
+          el.const({ key: `${s.id}_loopLen`, value: loopLen }),
+          el.mod(phase, el.const({ key: `${s.id}_loopSpan`, value: 1 }))
+        )
+      );
+  const position = loopStart === null ? phase : loopWrap;
 
   const leftRaw = el.table({ key: `${s.id}_tblL`, path: pathL }, position);
   const rightRaw = el.table({ key: `${s.id}_tblR`, path: pathR }, position);
