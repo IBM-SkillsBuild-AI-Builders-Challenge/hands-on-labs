@@ -20,6 +20,16 @@
 // ported from the desktop app's Elementary graph, plus a level meter. Control values
 // live on keyed const nodes shared across the L/R chains (Elementary dedups them), so
 // re-rendering only nudges a value; the filter/stateful nodes keep their state.
+//
+// P4 adds manual loop wrapping. When loopActive is true the read position is replaced
+// with a floored-modulo wrap into [loopIn, loopOut):
+//
+//     relPos     = position - loopIn
+//     readPos    = loopIn + (relPos - loopLen * floor(relPos / loopLen))
+//
+// The graph shape changes structurally when loopActive toggles, but the accumulator
+// node keeps its state because its key is stable. On loop exit the reducer re-bases
+// baseNorm to the current wrapped position so playback continues without a jump.
 
 import { el, type NodeRepr_t } from '@elemaudio/core';
 import type { TrackData } from './track';
@@ -30,12 +40,18 @@ export interface DeckState {
   playing: boolean;
   baseNorm: number; // normalized position of the last seek (0..1)
   seekGen: number; // bump to force the transport accumulator to reset
-  tempo: number; // playback rate ratio; 1.0 in P1 (varispeed arrives in P4)
+  tempo: number; // playback rate ratio; 1.0 = normal speed (varispeed P4)
   volume: number; // 0..1
   eqLow: number; // dB, -12..12
   eqMid: number; // dB, -12..12
   eqHigh: number; // dB, -12..12
   filterCutoff: number; // -1 (LPF down to 100Hz) .. 0 (bypass) .. 1 (HPF up to 10kHz)
+  // P4 — loop
+  loopIn: number;     // normalized loop start 0..1
+  loopOut: number;    // normalized loop end   0..1
+  loopActive: boolean;
+  // P4 — cue
+  cueNorm: number;    // normalized cue position 0..1; 0 = not set
 }
 
 export function initialDeckState(id: string): DeckState {
@@ -51,6 +67,10 @@ export function initialDeckState(id: string): DeckState {
     eqMid: 0,
     eqHigh: 0,
     filterCutoff: 0,
+    loopIn: 0,
+    loopOut: 1,
+    loopActive: false,
+    cueNorm: 0,
   };
 }
 
@@ -119,30 +139,48 @@ export function buildDeckSignal(s: DeckState): DeckSignal | null {
   if (!s.track) return null;
 
   const { pathL, pathR, totalFrames } = s.track;
+  const id = s.id;
   const incPerSample = s.tempo / Math.max(1, totalFrames - 1);
 
-  const inc = el.const({ key: `${s.id}_inc`, value: s.playing ? incPerSample : 0 });
-  const seekTrig = el.const({ key: `${s.id}_seek`, value: s.seekGen });
-  const base = el.const({ key: `${s.id}_base`, value: s.baseNorm });
+  const inc = el.const({ key: `${id}_inc`, value: s.playing ? incPerSample : 0 });
+  const seekTrig = el.const({ key: `${id}_seek`, value: s.seekGen });
+  const base = el.const({ key: `${id}_base`, value: s.baseNorm });
 
+  // Raw transport position: base + integral of increment at audio rate.
   const position = el.add(base, el.accum(inc, seekTrig));
 
-  const leftRaw = el.table({ key: `${s.id}_tblL`, path: pathL }, position);
-  const rightRaw = el.table({ key: `${s.id}_tblR`, path: pathR }, position);
+  // P4 — loop: floored-modulo wrap into [loopIn, loopOut).
+  // relPos = position - loopIn
+  // readPos = loopIn + (relPos - loopLen * floor(relPos / loopLen))
+  // Clamp loopLen to at least 1 frame so we never divide by zero.
+  const loopLen = Math.max(1 / totalFrames, s.loopOut - s.loopIn);
+  const loopInNode  = el.const({ key: `${id}_loopIn`,  value: s.loopIn });
+  const loopLenNode = el.const({ key: `${id}_loopLen`, value: loopLen });
+  const relPos  = el.sub(position, loopInNode);
+  const wrapped = el.add(
+    loopInNode,
+    el.sub(relPos, el.mul(loopLenNode, el.floor(el.div(relPos, loopLenNode)))),
+  );
+
+  // When loopActive the graph shape changes structurally; Elementary re-diffs the tree
+  // but the accumulator keeps state because its key is stable.
+  const readPos = s.loopActive ? wrapped : position;
+
+  const leftRaw = el.table({ key: `${id}_tblL`, path: pathL }, readPos);
+  const rightRaw = el.table({ key: `${id}_tblR`, path: pathR }, readPos);
 
   let left = channelChain(leftRaw, s);
   const right = channelChain(rightRaw, s);
 
   // Level meter on the post-fader left channel; passes audio through unchanged.
-  left = el.meter({ key: `${s.id}_metertap`, name: `${s.id}${METER_EVENT_SUFFIX}` }, left);
+  left = el.meter({ key: `${id}_metertap`, name: `${id}${METER_EVENT_SUFFIX}` }, left);
 
-  // Report the playhead position back to JS on a ~30Hz metro. snapshot outputs the
-  // sampled value (not audio), so we fold it into the left channel multiplied by zero
-  // — this keeps the node in the render tree without affecting what we hear.
+  // Snapshot the *wrapped* read position so the waveform playhead tracks correctly
+  // inside the loop region. Folded in multiplied by zero — stays in tree, silent.
   const posTap = el.snapshot(
-    { key: `${s.id}_postap`, name: `${s.id}${POS_EVENT_SUFFIX}` },
-    el.metro({ key: `${s.id}_posmetro`, interval: 33 }),
-    position,
+    { key: `${id}_postap`, name: `${id}${POS_EVENT_SUFFIX}` },
+    el.metro({ key: `${id}_posmetro`, interval: 33 }),
+    readPos,
   );
   left = el.add(left, el.mul(el.const({ value: 0 }), posTap));
 
