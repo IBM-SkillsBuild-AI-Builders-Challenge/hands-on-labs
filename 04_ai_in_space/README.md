@@ -6,4 +6,12 @@ In this lab, you'll build a **complete machine learning application** that predi
 
 The goal of this lab is to show you how AI can help you build a machine learning model, even if you're not an expert programmer. You'll learn how to give clear instructions to IBM Bob, set boundaries for what you want, and use real data to get accurate results. By the end of the lab, you'll have a working predictive AI model and a dashboard to predict the probability of a space launch.
 
-View the [lab guide](ai-in-space.md) to start the lab.
+## Getting Started
+
+If you're new to IBM Bob, begin with the setup guide:
+
+- **Getting Started with IBM Bob:** [get-started-with-ibm-bob.md](get-started-with-ibm-bob.md)
+
+Then continue with the hands-on lab:
+
+- **AI in Space Lab Guide:** [ai-in-space.md](ai-in-space.md)
