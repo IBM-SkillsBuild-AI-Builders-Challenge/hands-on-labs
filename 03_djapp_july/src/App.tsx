@@ -6,6 +6,7 @@ import { useDeck } from './useDeck';
 import DeckPanel from './components/DeckPanel';
 import DeckControls from './components/DeckControls';
 import Mixer from './components/Mixer';
+import SoundFXPad from './components/SoundFXPad';
 
 // P3 — two decks + a crossfader + master volume: the actual mixer.
 //
@@ -78,6 +79,8 @@ export default function App() {
         />
         <DeckControls deck={deckB} />
       </div>
+
+      <SoundFXPad ensureAudio={ensureAudio} />
 
       {error && <p className="error">{error}</p>}
     </main>
