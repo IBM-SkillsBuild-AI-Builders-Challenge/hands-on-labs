@@ -6,6 +6,7 @@ import Knob from './Knob';
 import Fader from './Fader';
 
 const dB = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(0)}`;
+const tempoLabel = (v: number) => `${v.toFixed(2)}x`;
 
 function filterLabel(v: number): string {
   if (Math.abs(v) < 0.02) return 'OFF';
@@ -29,6 +30,15 @@ export default function DeckControls({ deck }: { deck: UseDeck }) {
         max={1}
         onChange={deck.setFilter}
         format={filterLabel}
+      />
+      <Knob
+        label="TEMPO"
+        value={state.tempo}
+        min={0.5}
+        max={2}
+        defaultValue={1}
+        onChange={deck.setTempo}
+        format={tempoLabel}
       />
       <Fader value={state.volume} level={level} onChange={deck.setVolume} />
     </div>

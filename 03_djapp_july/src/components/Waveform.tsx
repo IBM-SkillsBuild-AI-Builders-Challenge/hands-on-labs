@@ -16,13 +16,17 @@ import type { TrackPeaks } from '../track';
 interface Props {
   peaks: TrackPeaks | null;
   position: number; // normalized 0..1
+  cuePosition?: number | null;
+  loopStart?: number;
+  loopEnd?: number;
+  loopEnabled?: boolean;
   onSeek: (norm: number) => void;
 }
 
 const CACHE_HEIGHT = 256; // offscreen bitmap height; scaled to the canvas at blit time
 const MIN_WINDOW = 0.02; // closest zoom: 2% of the track visible
 
-export default function Waveform({ peaks, position, onSeek }: Props) {
+export default function Waveform({ peaks, position, cuePosition, loopStart, loopEnd, loopEnabled, onSeek }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cacheRef = useRef<HTMLCanvasElement | null>(null);
   const [windowFrac, setWindowFrac] = useState(1); // fraction of track visible (1 = all)
@@ -115,6 +119,41 @@ export default function Waveform({ peaks, position, onSeek }: Props) {
     // Blit just the visible slice, scaled to the canvas.
     ctx.drawImage(cache, start, 0, win, cache.height, 0, 0, cssW, cssH);
 
+    // Loop range highlight.
+    if (typeof loopStart === 'number' && typeof loopEnd === 'number') {
+      const loopStartX = ((loopStart * total - start) / win) * cssW;
+      const loopEndX = ((loopEnd * total - start) / win) * cssW;
+      const x0 = Math.max(0, loopStartX);
+      const x1 = Math.min(cssW, loopEndX);
+      if (x1 > x0) {
+        ctx.fillStyle = loopEnabled ? 'rgba(76, 194, 255, 0.16)' : 'rgba(139, 147, 167, 0.12)';
+        ctx.fillRect(x0, 0, x1 - x0, cssH);
+      }
+      ctx.strokeStyle = loopEnabled ? '#4cc2ff' : '#7f8798';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.max(0, loopStartX), 0);
+      ctx.lineTo(Math.max(0, loopStartX), cssH);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(Math.min(cssW, loopEndX), 0);
+      ctx.lineTo(Math.min(cssW, loopEndX), cssH);
+      ctx.stroke();
+    }
+
+    // Cue marker.
+    if (typeof cuePosition === 'number' && cuePosition >= 0 && cuePosition <= 1) {
+      const cueX = ((cuePosition * total - start) / win) * cssW;
+      if (cueX >= 0 && cueX <= cssW) {
+        ctx.strokeStyle = '#ffcc33';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cueX, 0);
+        ctx.lineTo(cueX, cssH);
+        ctx.stroke();
+      }
+    }
+
     // Playhead at its true position within the visible window.
     const playX = ((position * total - start) / win) * cssW;
     ctx.strokeStyle = '#ff6b6b';
@@ -123,7 +162,7 @@ export default function Waveform({ peaks, position, onSeek }: Props) {
     ctx.moveTo(playX, 0);
     ctx.lineTo(playX, cssH);
     ctx.stroke();
-  }, [position, windowFor]);
+  }, [position, windowFor, cuePosition, loopStart, loopEnd, loopEnabled]);
 
   useEffect(() => {
     draw();

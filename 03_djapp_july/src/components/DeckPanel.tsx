@@ -60,7 +60,15 @@ export default function DeckPanel({ deck, label, ensureAudio }: Props) {
       <div className="track-name">{track ? track.name : 'No track loaded'}</div>
 
       <div className="waveform-wrap">
-        <Waveform peaks={track?.peaks ?? null} position={deck.position} onSeek={deck.seek} />
+        <Waveform
+          peaks={track?.peaks ?? null}
+          position={deck.position}
+          cuePosition={deck.state.cueSet ? deck.state.cuePosition : null}
+          loopStart={deck.state.loopStart}
+          loopEnd={deck.state.loopEnd}
+          loopEnabled={deck.state.loopEnabled}
+          onSeek={deck.seek}
+        />
       </div>
 
       <div className="transport">
@@ -70,6 +78,21 @@ export default function DeckPanel({ deck, label, ensureAudio }: Props) {
           disabled={!track}
         >
           {deck.state.playing ? '◼ Pause' : '▶ Play'}
+        </button>
+        <button className="btn ghost" onClick={() => deck.setCue(deck.position)} disabled={!track}>
+          {deck.state.cueSet ? 'Set cue' : 'Set cue'}
+        </button>
+        <button className="btn ghost" onClick={deck.jumpToCue} disabled={!track || !deck.state.cueSet}>
+          Cue
+        </button>
+        <button className="btn ghost" onClick={deck.toggleLoop} disabled={!track}>
+          {deck.state.loopEnabled ? 'Loop on' : 'Loop off'}
+        </button>
+        <button className="btn ghost" onClick={() => deck.setLoopStart(deck.position)} disabled={!track}>
+          Set A
+        </button>
+        <button className="btn ghost" onClick={() => deck.setLoopEnd(deck.position)} disabled={!track}>
+          Set B
         </button>
         <span className="time">
           {track ? `${fmt(deck.position * track.duration)} / ${fmt(track.duration)}` : '0:00 / 0:00'}
