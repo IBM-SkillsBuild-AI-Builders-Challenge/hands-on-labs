@@ -8,7 +8,8 @@ This repo is part of the **IBM SkillsBuild AI Builders Challenge** and is your s
 
 ## 🚀 Getting Started
 - Check out the **TORCS Lab** → this is the **May Challenge lab**
-- Check out the **Football Lab** → this is the **June Challenge lab** 
+- Check out the **Football Lab** → this is the **June Challenge lab**
+- Check out the **DJ App Lab** → this is the **July Challenge lab**
 - Work through the folders and try things out as you go  
 - Use `RESULTS.md` in your fork to track what you learn  
 
