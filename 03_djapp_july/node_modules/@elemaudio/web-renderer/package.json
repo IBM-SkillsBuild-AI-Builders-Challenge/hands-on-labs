@@ -1,0 +1,53 @@
+{
+  "name": "@elemaudio/web-renderer",
+  "version": "4.0.3",
+  "type": "module",
+  "description": "Official package for rendering Elementary Audio applications to Web Audio",
+  "keywords": [
+    "audio",
+    "dsp",
+    "signal",
+    "processing",
+    "functional",
+    "declarative",
+    "webaudio"
+  ],
+  "author": "Nick Thompson <nick@elementary.audio>",
+  "homepage": "https://www.elementary.audio",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.cjs",
+    "dist/index.d.ts",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "scripts": {
+    "wasm": "./scripts/prebuild.sh",
+    "build": "tsup index.ts --format cjs,esm --dts --env.PKG_VERSION $npm_package_version",
+    "test": "vitest run test --config=./test/vite.config.js"
+  },
+  "devDependencies": {
+    "@vitest/browser": "^1.2.2",
+    "tsup": "^8.3.5",
+    "vite": "^4.4.9",
+    "vitest": "^1.2.2",
+    "webdriverio": "^8.30.0"
+  },
+  "dependencies": {
+    "@elemaudio/core": "^4.0.1",
+    "invariant": "^2.2.4"
+  },
+  "gitHead": "e1f0a658565ff327a10e3b9b89d47f5fd1780a8b"
+}

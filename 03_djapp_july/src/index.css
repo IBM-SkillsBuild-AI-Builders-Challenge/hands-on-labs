@@ -108,6 +108,13 @@ code {
   font-weight: 500;
 }
 
+/* P4 — active state: used by Set Cue (when cue is set) and Loop ON (when looping). */
+.btn.ghost.active {
+  background: #4caf50;
+  color: #0a0c10;
+  border-color: #4caf50;
+}
+
 .deck {
   flex: 1;
   min-height: 0;
@@ -276,6 +283,16 @@ code {
   align-items: center;
   gap: 1rem;
   margin-top: 0.5rem;
+}
+
+/* P4 — cue and loop control rows below the transport */
+.cue-row,
+.loop-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
 }
 
 /* Mixer (master + crossfader) — center column of the console */
